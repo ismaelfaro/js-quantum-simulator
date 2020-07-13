@@ -12,13 +12,13 @@ class QuantumCircuit {
         this.circuit = [];
     }
 
-    addgate(gate){
+    addGate(gate){
         this.circuit.push(gate);
     }
 
-    x(qubit){ this.addgate(['x',qubit]);}
+    x(qubit){ this.addGate(['x',qubit]);}
 
-    rx(qubit, theta){ this.addgate(['rx',qubit, theta]);}
+    rx(qubit, theta){ this.addGate(['rx',qubit, theta]);}
 
     ry(qubit, theta){
         this.rx(qubit,pi/2);
@@ -41,11 +41,11 @@ class QuantumCircuit {
         this.x(qubit)
     }
 
-    h(qubit){ this.addgate(['h',qubit]); }
+    h(qubit){ this.addGate(['h',qubit]); }
     
-    cx(qubit,target){ this.addgate(['cx',qubit,target]); }
+    cx(qubit,target){ this.addGate(['cx',qubit,target]); }
 
-    m(qubit,target){ this.addgate(['m',qubit,target]); }
+    m(qubit,target){ this.addGate(['m',qubit,target]); }
 }
 
 class QuantumSimulator{
