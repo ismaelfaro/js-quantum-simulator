@@ -2,10 +2,10 @@
 const r2=0.70710678118;
 const pi=Math.PI;
 // Define the Quantum Circuit
-class Qcircuit {
+class QuantumCircuit {
     constructor(Qubits){
         if (Qubits == 0 ){
-            console.error("Number of Qbits need to ne more than 0");
+            console.error("Number of Qubits need to ne more than 0");
         } 
         this.Qubits = Qubits;
         this.Bits = Qubits;
@@ -16,65 +16,61 @@ class Qcircuit {
         this.circuit.push(gate);
     }
 
-    x(q){ this.addgate(['x',q]);}
+    x(qubit){ this.addgate(['x',qubit]);}
 
-    rx(q, theta){ this.addgate(['rx',q, theta]);}
+    rx(qubit, theta){ this.addgate(['rx',qubit, theta]);}
 
-    ry(q, theta){
-        this.rx(q,pi/2);
-        this.h(q);
-        this.rx(q,theta);
-        this.h(q);
-        this.rx(q,-pi/2);
+    ry(qubit, theta){
+        this.rx(qubit,pi/2);
+        this.h(qubit);
+        this.rx(qubit,theta);
+        this.h(qubit);
+        this.rx(qubit,-pi/2);
     }
 
-    rz(q, theta){
-        this.h(q);
-        this.rx(q,theta);
-        this.h(q);
+    rz(qubit, theta){
+        this.h(qubit);
+        this.rx(qubit,theta);
+        this.h(qubit);
     }
 
-    z(q){ this.rz(q,pi)}
+    z(qubit){ this.rz(qubit,pi) }
 
-    y(q){
-        this.rz(q,pi);
-        this.x(q)
+    y(qubit){
+        this.rz(qubit,pi);
+        this.x(qubit)
     }
 
-    h(q){ this.addgate(['h',q]); }
+    h(qubit){ this.addgate(['h',qubit]); }
     
-    cx(q,t){ this.addgate(['cx',q,t]); }
+    cx(qubit,target){ this.addgate(['cx',qubit,target]); }
 
-    m(q,t){ this.addgate(['m',q,t]); }
+    m(qubit,target){ this.addgate(['m',qubit,target]); }
 }
 
-class Qsimulator{
-    constructor(qcircuit){
-        this.circuit = qcircuit.circuit;
-        this.Qubits =  qcircuit.Qubits;
+class QuantumSimulator{
+    constructor(quantumCircuit){
+        this.circuit = quantumCircuit.circuit;
+        this.Qubits =  quantumCircuit.Qubits;
         this.Bits =  this.Qubits;
-        this.statevector = [];
+        this.stateVector = [];
     }
 
-    statevector2str(){
-        let output = "";
-        this.statevector.forEach((value, index) => {
-            let bits = index.toString(2).padStart(this.Qubits, '0');
-            output += bits +' '+ value[0].toString()+'+'+value[1].toString() +'j\n';
-        })
-        return output;
+    initializeStateVector(){
+        this.stateVector = new Array(Math.pow(2,this.Qubits)).fill([0.0,0.0]);
+        this.stateVector[0]=[1.0,0.0];
     }
 
     probability(shots){
         let probabilities = []
-        this.statevector.forEach((value, index) =>{
+        this.stateVector.forEach((value, index) =>{
             let realPart = value[0];
-            let imaginatyPart = value[1];
-            probabilities.push(Math.pow(realPart,2)+Math.pow(imaginatyPart,2))
+            let imaginaryPart = value[1];
+            probabilities.push(Math.pow(realPart,2)+Math.pow(imaginaryPart,2))
         })
 
         let output = []
-        for(let shotscount=0; shotscount < shots;shotscount++){
+        for(let shotsCount=0; shotsCount < shots;shotsCount++){
             let cumu =0
             let un= true
             let r = Math.random()
@@ -90,17 +86,32 @@ class Qsimulator{
         return output;
     }
 
-    initializeStatevector(){
-        this.statevector = new Array(Math.pow(2,this.Qubits)).fill([0.0,0.0]);
-        this.statevector[0]=[1.0,0.0];
+    stateVector2str(){
+        let output = "";
+        this.stateVector.forEach((value, index) => {
+            let bits = index.toString(2).padStart(this.Qubits, '0');
+            output += bits +' '+ value[0].toString()+'+'+value[1].toString() +'j\n';
+        })
+        return output;
     }
+
+    superpose(x,y){
+        return [[r2*(x[0]+y[0]),r2*(x[1]+y[1])],
+                [r2*(x[0]-y[0]),r2*(x[1]-y[1])]];
+    };
+
+    turn(x,y,theta){
+        let part1 = [x[0]*Math.cos(theta/2)+y[1]*Math.sin(theta/2),x[1]*Math.cos(theta/2)-y[0]*Math.sin(theta/2)]
+        let part2 = [y[0]*Math.cos(theta/2)+x[1]*Math.sin(theta/2),y[1]*Math.cos(theta/2)-x[0]*Math.sin(theta/2)]
+        return [ part1, part2]
+    };
 
     run(format, shots){
         
         format = format || "statevector";
         shots = shots || 1024;
 
-        this.initializeStatevector();
+        this.initializeStateVector();
 
         this.circuit.forEach((value)=>{
             let gate = value[0];
@@ -112,20 +123,20 @@ class Qsimulator{
                         let b0=contQubit+Math.pow(2,qubit+1)*contState;
                         let b1=b0+Math.pow(2,qubit);
                         if(gate == 'x'){
-                            let temp = this.statevector[b0]
-                            this.statevector[b0] = this.statevector[b1]
-                            this.statevector[b1] = temp
+                            let temp = this.stateVector[b0]
+                            this.stateVector[b0] = this.stateVector[b1]
+                            this.stateVector[b1] = temp
                         }
                         if(gate == 'h') {
-                            let supepositionResult = this.superpose(this.statevector[b0],this.statevector[b1]);
-                            this.statevector[b0] = supepositionResult[0];
-                            this.statevector[b1] = supepositionResult[1];
+                            let superpositionResult = this.superpose(this.stateVector[b0],this.stateVector[b1]);
+                            this.stateVector[b0] = superpositionResult[0];
+                            this.stateVector[b1] = superpositionResult[1];
                         }
                         if(gate == 'rx'){
                             let theta = value[2];
-                            let turn = this.turn(this.statevector[b0],this.statevector[b1],theta);
-                            this.statevector[b0] = turn[0];
-                            this.statevector[b1] = turn[1];
+                            let turn = this.turn(this.stateVector[b0],this.stateVector[b1],theta);
+                            this.stateVector[b0] = turn[0];
+                            this.stateVector[b1] = turn[1];
                         }
                     }   
                 }
@@ -151,9 +162,9 @@ class Qsimulator{
 
                                 let b1 = b0 + Math.pow(2,target)
 
-                                let temp = this.statevector[b0]
-                                this.statevector[b0] = this.statevector[b1];
-                                this.statevector[b1] = temp;
+                                let temp = this.stateVector[b0]
+                                this.stateVector[b0] = this.stateVector[b1];
+                                this.stateVector[b1] = temp;
                             }
                         }
                     }     
@@ -162,7 +173,7 @@ class Qsimulator{
         });
     
         if (format == 'statevector'){
-            return this.statevector2str();
+            return this.stateVector2str();
         } else if (format == 'memory'){
             return this.probability(shots);
         } else if(format == 'counts'){
@@ -181,25 +192,15 @@ class Qsimulator{
             });
             return orderedCounts;
         }else{
-            console.log('error: Valid output format [statevector, counts, memory]')
+            console.log('error: Valid output format [state vector, counts, memory]')
         }
     }
 
-    superpose(x,y){
-        return [[r2*(x[0]+y[0]),r2*(x[1]+y[1])],
-                [r2*(x[0]-y[0]),r2*(x[1]-y[1])]];
-    };
-
-    turn(x,y,theta){
-        let part1 = [x[0]*Math.cos(theta/2)+y[1]*Math.sin(theta/2),x[1]*Math.cos(theta/2)-y[0]*Math.sin(theta/2)]
-        let part2 = [y[0]*Math.cos(theta/2)+x[1]*Math.sin(theta/2),y[1]*Math.cos(theta/2)-x[0]*Math.sin(theta/2)]
-        return [ part1, part2]
-    };
 };
 
 // test
 function test(){
-    qc = new Qcircuit(5)
+    qc = new QuantumCircuit(5)
     qc.x(0);
     qc.rx(0,2);
     qc.x(1)
@@ -220,9 +221,11 @@ function test(){
     
     // Execute
     // result = qc.execute(1024,"counts")
-    qsimulator = new Qsimulator(qc)
-    statevector = qsimulator.run("statevector")
-    console.log(statevector)
-    result = qsimulator.run("counts", 1024)
+    quantumSimulator = new QuantumSimulator(qc)
+    stateVector = quantumSimulator.run("statevector")
+    console.log(stateVector)
+    result = quantumSimulator.run("counts", 1024)
     console.log(result)
 }
+
+test()
